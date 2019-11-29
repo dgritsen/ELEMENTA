@@ -1,0 +1,42 @@
+#EXPLORATORY FACTOR ANALYSIS
+library(psych)
+#get data
+RES_EM <- read.csv(/filepath)
+#select variables
+df_EFA <- data.frame(RES_EM$v1, RES_EM$v2, RES_EM$v3, RES_EM$v4, RES_EM$v5, RES_EM$v6, RES_EM$v8, RES_EM$v9, RES_EM$v10)
+#factor model using ML and varimax
+EFAvarimax5 <- fa(df_EFA, nfactors = 5, fm = "ml", rotate = "varimax")
+#get results
+print.psych(EFAvarimax5, sort=TRUE)
+parallel <- fa.parallel(df_EFA, fm = 'ml', fa = 'fa')
+fa.diagram(EFAvarimax5)
+plot(EFAvarimax5$values, type="b")
+#get factor scores and attach them to the dataset
+scores <- factor.scores(df_EFA, EFAvarimax5, method = "Thurstone")
+fs1 <- do.call(rbind.data.frame, scores)
+fs2 <- fs1[1:92,]
+EFAscores <- cbind(df_EFA,fs2)
+
+#CORRESPONDENCE ANALYSIS
+#prepare the data by re-code continous into categorical usign cut-off
+##set cut offs
+xs1=quantile(EFAscores$ML1,c(0,1/4,3/4,1))
+xs1
+##recode
+EFAscoresCAT <- EFAscores %>% mutate(F1cat=cut(ML1, breaks=xs1, labels=c("low","middle","high")))
+##same recoding into categories for all other factors and continous variables (winter_access, RES_size)
+
+library(ca)
+#simple correspondence analysis
+mytable <- with(EFAscoresCAT, table(Type, Region)) # create a 2 way table
+prop.table(mytable, 1) # row percentages
+prop.table(mytable, 2) # column percentages
+fit <- ca(mytable)
+print(fit) # basic results
+plot(fit, mass=c(TRUE,TRUE), labels = 2)
+
+#multiple correspondence analysis of factor scores
+MCA_fac <- mjca(EFAscoresCAT[,16:20], lambda = "adjusted")
+print(MCA_fac$Burt)
+summary(MCA_fac)
+plot(MCA_fac)
